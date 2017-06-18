@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <iostream>
 #include <cstdio>
 
 void welcome();
@@ -43,6 +42,8 @@ void command_switch(char *cmd_str) {
     while(*pstr != '\r' && *pstr != '\n') {
         *ptmp++ = *pstr++;
     }
+    //overwrite the newline
+    *pstr = '\0';
 
     //
     if(strcmp(cmd_tmp, "hi") == 0) {
@@ -50,7 +51,7 @@ void command_switch(char *cmd_str) {
     } else if (strcmp(cmd_tmp, "exit") == 0) {
         exit(0);
     }  else {
-        printf("Error: command not found\n");
+        CreateChildProcess(cmd_str);
     }
 }
 
@@ -63,6 +64,37 @@ BOOL CreateChildProcess(char *cmd_str) {
     PROCESS_INFORMATION process_info;
     BOOL flag;
 
-    //clear the start struct information
-    //todo; to be continued
+    //clear the start struct information( equals to memset_0)
+    ZeroMemory( &start_info, sizeof(start_info));
+    //set the size of struct, cb is the size
+    start_info.cb = sizeof(start_info);
+    //clear the process struct
+    ZeroMemory( &process_info, sizeof(process_info));
+
+    flag = CreateProcess(
+            NULL,
+            cmd_str,
+            NULL,
+            NULL,
+            FALSE,
+            0,
+            NULL,
+            NULL,
+            &start_info,
+            &process_info
+    );
+
+    if(!flag) {
+        //create failed
+        printf("Error : command not found (%d).\n", GetLastError());
+        return 0;
+    }
+
+    //wait for sub process end
+    WaitForSingleObject(process_info.hProcess, INFINITE);
+    //close the process handle
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+
+    return 1;
 }
